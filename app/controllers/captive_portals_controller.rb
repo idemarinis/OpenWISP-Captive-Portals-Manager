@@ -50,6 +50,8 @@ class CaptivePortalsController < ApplicationController
     @captive_portal = CaptivePortal.new
     @captive_portal.radius_auth_server = RadiusAuthServer.new
     @captive_portal.radius_acct_server = RadiusAcctServer.new
+   
+    @captive_portal.shibauthz = Shibauthz.new
 
     respond_to do |format|
       format.html # new.html.erb
@@ -60,6 +62,7 @@ class CaptivePortalsController < ApplicationController
   def edit
     @captive_portal.radius_auth_server = RadiusAuthServer.new if @captive_portal.radius_auth_server.nil?
     @captive_portal.radius_acct_server = RadiusAcctServer.new if @captive_portal.radius_acct_server.nil?
+    @captive_portal.shibauthz = Shibauthz.new if @captive_portal.shibauthz.nil?
   end
 
   def create
@@ -67,6 +70,7 @@ class CaptivePortalsController < ApplicationController
 
     @captive_portal.radius_auth_server = RadiusAuthServer.new if @captive_portal.radius_auth_server.nil?
     @captive_portal.radius_acct_server = RadiusAcctServer.new if @captive_portal.radius_acct_server.nil?
+    @captive_portal.shibauthz = Shibauthz.new if @captive_portal.shibauthz.nil?
     
     respond_to do |format|
       if @captive_portal.save

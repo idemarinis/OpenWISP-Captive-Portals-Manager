@@ -77,7 +77,7 @@ class RadiusAcctServer < RadiusServer
                                    )
       )
     rescue Exception => e
-      Rails.logger.error("Failed to send RADIUS accounting stop request to #{self.host}:#{self.port} for user #{request[:username]}, sessionid #{request[:sessionid]} (#{e})")
+      Rails.logger.error("Failed to send RADIUS accounting start request to #{self.host}:#{self.port} for user #{request[:username]}, sessionid #{request[:sessionid]} (#{e})")
       reply = false
     end
     reply
@@ -126,7 +126,8 @@ class RadiusAcctServer < RadiusServer
                                     )
       )
     rescue Exception => e
-      Rails.logger.error("Failed to send RADIUS accounting update request to #{self.host}:#{self.port} for user #{request[:username]}, sessionid #{request[:sessionid]} (#{e})")
+      Rails.logger.error("Failed to send RADIUS accounting update request to #{self.host}:#{self.port} for user #{request[:username]}, sessionid #{request[:sessionid]}, NAS #{nas_ip_address}, FIPAdd #{request[:ip]},
+                          CallIDSTa #{request[:mac]}, CalledIDStattion #{captive_portal.cp_interface}, Acct-Authentic #{request[:radius]}, Acct-Session-Time #{request[:session_time]} (#{e})")
       reply = false
     end
     reply

@@ -139,7 +139,21 @@
         <% end %>
 
       </fieldset>
+      <fieldset class="subform">
+        <legend><%=t :shibauthz %></legend>
 
+        <%= cp_form.fields_for :shibauthz do |shibauthz_form| %>
+            <p>
+              <%= shibauthz_form.label :username %>
+              <%= shibauthz_form.text_field :username %>
+            </p>
+            <p>
+              <%= shibauthz_form.check_box :_destroy %>
+              <%= shibauthz_form.label :_destroy, t(:remove_configuration) %>
+            </p>
+        <% end %>
+
+      </fieldset>
       <%= cp_form.submit :class => :button %>
 
   <% end %>

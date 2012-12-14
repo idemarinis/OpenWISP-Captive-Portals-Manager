@@ -71,6 +71,58 @@ class RedirectionsController < ApplicationController
     end
   end
 
+
+  #Handler URL per autenticazione Shibboleth
+  def shibauthz
+    if @captive_portal.nil?
+      respond_to do |format|
+        format.html { render :action => :invalid_network }
+      end
+      return
+    end
+    original_url = params[:original_url].nil? ? CaptivePortal::DEFAULT_URL :
+      URI.unescape(params[:original_url])
+   
+   @shibuser = @captive_portal.shibauthz.username
+   if @shibuser.nil?
+      respond_to do |format|
+        format.html { render :action => :unconfiguredshib}
+      end
+   elsif request.env[@shibuser].nil?
+      respond_to do |format|
+        format.html { render :action => :unauthorizedshib}
+      end
+    else 
+      cp_session_token, message = @captive_portal.enable_shibuser(
+          request.env[@shibuser],
+          request.env[@shibuser],
+          @client_ip,
+          @client_mac
+      )
+      if ! cp_session_token.nil?
+        cookies[:cp_session_token] = {
+            :value => cp_session_token,
+            :expires => 1.year.from_now
+        }
+        respond_to do |format|
+          format.html { redirect_to original_url }
+        end
+      else
+        error_url = @captive_portal.compile_error_url(
+            :mac_address => @client_mac,
+            :ip_address => @client_ip,
+            :message => message,
+            :original_url => original_url
+        )
+        respond_to do |format|
+          format.html { redirect_to error_url }
+        end
+      end
+    end
+  
+  end
+
+
   def login
     if @captive_portal.nil?
       respond_to do |format|

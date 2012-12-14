@@ -22,6 +22,7 @@ class CaptivePortal < ActiveRecord::Base
   has_many :allowed_traffics, :dependent => :destroy
   has_one :radius_auth_server, :dependent => :destroy
   has_one :radius_acct_server, :dependent => :destroy
+  has_one :shibauthz, :dependent => :destroy
 
   # Default url to redirect clients to if session[:original_url] is not present
   DEFAULT_URL="http://openwisp.org/"
@@ -62,13 +63,14 @@ class CaptivePortal < ActiveRecord::Base
   attr_accessible :name, :cp_interface, :wan_interface, :redirection_url, :error_url, :local_http_port,
                   :local_https_port, :default_session_timeout, :default_idle_timeout, :total_download_bandwidth,
                   :total_upload_bandwidth, :default_download_bandwidth, :default_upload_bandwidth,
-                  :radius_auth_server_attributes, :radius_acct_server_attributes
+                  :radius_auth_server_attributes, :radius_acct_server_attributes, :shibauthz_attributes
 
   accepts_nested_attributes_for :radius_acct_server, :allow_destroy => true,
                                 :reject_if => proc { |attributes| attributes[:host].blank? }
   accepts_nested_attributes_for :radius_auth_server, :allow_destroy => true,
                                 :reject_if => proc { |attributes| attributes[:host].blank? }
-
+  accepts_nested_attributes_for :shibauthz, :allow_destroy => true
+                                
   before_destroy {
     worker = MiddleMan.worker(:captive_portal_worker)
 
@@ -277,6 +279,52 @@ class CaptivePortal < ActiveRecord::Base
     end
   end
 
+
+  def enable_shibuser (username, password, client_ip, client_mac)
+
+    # TO DO: Radius request offload ... (sync for auth, async for acct)
+    radius = false
+    reply = Hash.new
+    reply[:message]="Cannot save user, internal error ("
+
+    # Check if user is already auth'ed on with same mac address
+    unless online_users.where(:username => username, :mac_address => client_mac).empty?
+      return [ nil, I18n.t(:already_logged_in) ]
+    end
+    online_user = online_users.build(
+          :username => username,
+          :password => password,
+          :radius => radius,
+          :ip_address => client_ip,
+          :mac_address => client_mac,
+          :idle_timeout => reply[:idle_timeout] || self.default_idle_timeout,
+          :session_timeout => reply[:session_timeout] || self.default_session_timeout,
+          :max_upload_bandwidth => reply[:max_upload_bandwidth] || self.default_upload_bandwidth,
+          :max_download_bandwidth => reply[:max_download_bandwidth] || self.default_download_bandwidth
+      )
+     begin
+        online_user.save!
+      rescue Exception => e
+        return [ nil , reply[:message]+"#{e})" ]
+     end
+     reply[:message]="Enabled User"
+
+      unless self.radius_acct_server.nil?
+        worker = MiddleMan.worker(:captive_portal_worker)
+        worker.async_accounting_start(
+            :args => {
+                :acct_server_id => self.radius_acct_server.id,
+                :username => online_user.username,
+                :sessionid => online_user.cp_session_token,
+                :ip => online_user.ip_address,
+                :mac => online_user.mac_address,
+                :radius => online_user.RADIUS_user?
+            }
+        )
+      end
+      [ online_user.cp_session_token, reply[:message] ]
+    end
+
   # The following functions are intended to be offloaded (i.e. should always be called from a worker)
   # DO NOT start a *synchronous* worker job inside the following functions!.
 
@@ -309,5 +357,4 @@ class CaptivePortal < ActiveRecord::Base
       online_user.destroy
     end
   end
-
 end

@@ -5,6 +5,7 @@ it:
     radius_auth_server: "Server RADIUS autenticazione"
     radius_acct_server: "Server RADIUS accounting"
     local_user: "Utente locale"
+    shibauthz: "Configurazione IDEM"
 
   attributes_names: &attributes_names
     captive_portals: "Captive Portals"

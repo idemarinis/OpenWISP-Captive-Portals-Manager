@@ -76,6 +76,10 @@ Railscp::Application.routes.draw do
   match 'error' => 'redirections#default_error_page',
         :as => :error, :method => :get
   match 'login' => 'redirections#login', :as => :login, :method => :post
+
+  #Handler di Autenticazione Shibboleth
+  match 'shibauthz' => 'redirections#shibauthz', :as => :shibauthz, :method => :post
+
   match 'logout' => 'redirections#logout', :as => :logout, :method => :get
 
   match '/' => "redirections#redirect"
